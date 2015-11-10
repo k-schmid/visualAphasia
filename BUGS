@@ -1,0 +1,10 @@
+Please add any bugs you find to the list!
+
+OPEN
+- Text on folders positioned wrongly depending on thumbnail size
+
+FIXED
+- Images are not being shown fully
+- Image grid should be scaled to fill the screen vertically or horizontally to cover as much space as possible
+- In OFFLINE MODE ONLY, send marker 120 (aka "TargetMarkerStart") instead of 20 (aka "MarkerStart"). DO NOT do this in ONLINE MODE (always 20/MarkerStart in that case)
+- Renderer ignores rotate/flash/scale/mask flags

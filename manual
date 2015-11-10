@@ -1,0 +1,7 @@
+Keep in mind:
+
+In rowcol mode, the number of iterations should always be an even number. 
+Iteration is defined on the image level, and thus an iteration contains a 
+single flash of each image. For rowcol stimulation this would mean (for 
+instance) a stimulation of only the rows.
+If an odd number is given, the next even number is taken!
