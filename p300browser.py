@@ -91,8 +91,8 @@ class PhotoSet:
 
 				aspect = float(img.get_width())/img.get_height()
 				# scale the images and store them
-				thumb = pygame.transform.smoothscale(img, (128*aspect, 128))
-				small = pygame.transform.smoothscale(img, (512*aspect, 512))
+				thumb = pygame.transform.smoothscale(img, (int(128*aspect), 128))
+				small = pygame.transform.smoothscale(img, (int(512*aspect), 512))
 
 				pygame.image.save(thumb,thumb_name)
 				pygame.image.save(small,small_name)
