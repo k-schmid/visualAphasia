@@ -32,14 +32,18 @@ File_Path = os.path.dirname(globals()["__file__"]) + "/highlights.csv"
                 STATE_DISPLAY_IMAGE,
 ] = range(8)
 
+# This is the main class for the PhotoBrowser
 class P300PhotoBrowser(MainloopFeedback):
         def init(self):
                 """Create the class and initialise variables that must be in place before
                 pre_mainloop is called"""
 
-                self.screen_w = 1100
-                self.screen_h = 700
-                self.screenPos = [100, 100]
+                # Screen Settings
+                self.screen_w = 1920
+                self.screen_h = 1080
+                self.screenPos = [0, 0]
+
+
                 self._data = {}
                 self.online_mode = False
 
@@ -54,8 +58,12 @@ class P300PhotoBrowser(MainloopFeedback):
                 self.inter_trial_duration = 3000
                 self.inter_block_duration = 15000
                 self.inter_block_countdown_duration = 3000
-                self.highlight_count = 6
-                self.subtrials_per_frame = 6 # nr of subtrials for displaying all images
+
+                # Number of images highlighted at a time
+                self.highlight_count = 3
+
+                # nr of subtrials for displaying all images
+                self.subtrials_per_frame = 6
 
                 # switch for effect
                 self.rotation = True
@@ -64,11 +72,14 @@ class P300PhotoBrowser(MainloopFeedback):
                 self.mask = True
 
                 # gobals vars
-                self.row = 6
-                self.col = 6
+
+                # Number of rows and columns in the matrix
+                self.row = 2
+                self.col = 3
                 self.max_photos = self.row * self.col
+
                 self.rowColEval = False
-                self.target_list = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+                self.target_list = [0,1,2,3,4,5]
 
                 self.total_subtrial_counter = 0
                 self.init_scoring_matrix()
