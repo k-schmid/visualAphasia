@@ -20,7 +20,7 @@ P300_START_TRIAL = 1
 P300_END_TRIAL = 2
 File_Path = os.path.dirname(globals()["__file__"]) + "/highlights.csv"
 
- 
+
 [
                 STATE_INITIAL,
                 STATE_STARTING_BLOCK,
@@ -40,7 +40,7 @@ class P300PhotoBrowser(MainloopFeedback):
 
                 # Screen Settings
                 self.screen_w = 1920
-                self.screen_h = 1080
+                self.screen_h = 1200
                 self.screenPos = [0, 0]
 
 
@@ -49,21 +49,31 @@ class P300PhotoBrowser(MainloopFeedback):
 
                 self.block_count = 3
                 self.trial_count = 1
+                # Time the target is presented to the user
                 self.trial_highlight_duration = 3500
+                # Time before the target is presented to the user
                 self.trial_pre_highlight_duration = 2000
                 self.trial_pause_duration = 2000
                 self.subtrial_count = 60 #2160 #6
-                self.stimulation_duration = 100
-                self.inter_stimulus_duration = 200
+
+                # Duration of the stimulus
+                self.stimulation_duration = 175
+
+                # ISI (SOA = ISI + Stimulus Duration)
+                self.inter_stimulus_duration = 100
+
                 self.inter_trial_duration = 3000
                 self.inter_block_duration = 15000
                 self.inter_block_countdown_duration = 3000
 
+
                 # Number of images highlighted at a time
-                self.highlight_count = 3
+                self.highlight_count = 1
+
 
                 # nr of subtrials for displaying all images
                 self.subtrials_per_frame = 6
+
 
                 # switch for effect
                 self.rotation = True
@@ -150,8 +160,9 @@ class P300PhotoBrowser(MainloopFeedback):
                 self._last_highlight = -1
                 self._display_elapsed = 0
 
+                # Highlight the recognised image after the subtrial
+                self.image_display = False
                 self.image_display_time = 5000
-                self.image_display = True
 
                 self.copy_task = True
                 self._in_pre_highlight_pause = False
@@ -328,6 +339,7 @@ class P300PhotoBrowser(MainloopFeedback):
                 # reset current subtrial to 0
                 # change state to STATE_SUBTRIAL
 
+                # If the time to wait before showing the target is already elapsed:
                 # select a random image for highlighting
                 if self._trial_elapsed >= self.trial_pre_highlight_duration and not self._in_pre_highlight_pause:
                         self._in_pre_highlight_pause = True
@@ -352,9 +364,13 @@ class P300PhotoBrowser(MainloopFeedback):
 
                 self._trial_elapsed += self.elapsed
 
+                # If the pause before showing and the time for showing the target are both elapsed:
+                # Clear the highlighting
                 if self._trial_elapsed > (self.trial_highlight_duration + self.trial_pre_highlight_duration):
                         self.viewer.clear_highlight()
 
+                # If the pause before, the highlighting itself and the pause after the highlighting are all elapsed:
+                # Set state to STATE_SUBTRIAL
                 if self._trial_elapsed > (self.trial_pause_duration + self.trial_highlight_duration + self.trial_pre_highlight_duration):
                         self._state = STATE_SUBTRIAL
                         self._trial_elapsed = 0
@@ -370,11 +386,19 @@ class P300PhotoBrowser(MainloopFeedback):
                 for x in range(self.row):
                         for y in range(self.col):
                                 if state[x][y]:
+                                        # TODO 6 might be wrong and not modular (maybe numcols?)
                                         self._current_highlights.append((x*6)+y)
                 print state
                 self._current_highlights_index = 0
 
         def handle_subtrial(self):
+                # send start marker
+                # get stimulation order indexes
+                # send marker depending on target/ non-target presentation
+                # change state to either:
+                #       - STATE_DISPLAY_IMAGE (if option to show result of target identification)
+                #       - STATE_BETWEEN_TRIALS
+
                 self._subtrial_stimulation_elapsed += self.elapsed
                 self._subtrial_pause_elapsed += self.elapsed
 
