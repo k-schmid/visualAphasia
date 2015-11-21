@@ -53,6 +53,7 @@ class P300PhotoBrowser(MainloopFeedback):
                 self.trial_highlight_duration = 3500
                 # Time before the target is presented to the user
                 self.trial_pre_highlight_duration = 2000
+                # Pre trial Pause
                 self.trial_pause_duration = 2000
                 self.subtrial_count = 60 #2160 #6
 
@@ -174,6 +175,8 @@ class P300PhotoBrowser(MainloopFeedback):
                 self.udp_markers_enable = True #_udp_markers_socket error
                 self._markers_reset = False # _markers_reset error
                 self._skip_cycle = False
+
+                self._on_play()
                 
         def init_scoring_matrix(self):
             self.scoring_matrix = []
@@ -697,9 +700,33 @@ class P300PhotoBrowser(MainloopFeedback):
                 elif data.has_key(u'rowColEval'):
                         self.init_scoring_matrix()
 
+        def _mainloop(self):
+                """
+                Calls tick repeatedly.
+
+                Additionally it calls either :func:`pause_tick` or :func:`play_tick`,
+                depending if the Feedback is paused or not.
+                """
+                self._running = True
+                self._inMainloop = True
+                self._state = STATE_STARTING_TRIAL
+                while self._running:
+                        self.tick()
+                self._inMainloop = False
+
+
+        def on_play(self):
+                pass
+
 if __name__ == "__main__":
         # simulate pyff for rapid testing
         os.chdir("../..")
         p = P300PhotoBrowser()
+
         p.on_init()
-        p._on_play()
+
+        p.pre_mainloop()
+
+        p._mainloop()
+        p.post_mainloop()
+
