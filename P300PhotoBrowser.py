@@ -4,6 +4,11 @@ import os
 from pygame.locals import *
 from numpy import *
 import glutils
+import logging
+logging.basicConfig()
+import random
+from threading import Thread
+
 
 from p300browser import *
 
@@ -28,7 +33,7 @@ File_Path = os.path.dirname(globals()["__file__"]) + "/highlights.csv"
                 STATE_SUBTRIAL,
                 STATE_BETWEEN_TRIALS,
                 STATE_BETWEEN_BLOCKS,
-                STATE_FINISHED,
+                STATE_PAUSE,
                 STATE_DISPLAY_IMAGE,
 ] = range(8)
 
@@ -39,8 +44,8 @@ class P300PhotoBrowser(MainloopFeedback):
                 pre_mainloop is called"""
 
                 # Screen Settings
-                self.screen_w = 1920
-                self.screen_h = 1200
+                self.screen_w = 500
+                self.screen_h = 300
                 self.screenPos = [0, 0]
 
 
@@ -50,12 +55,12 @@ class P300PhotoBrowser(MainloopFeedback):
                 self.block_count = 3
                 self.trial_count = 1
                 # Time the target is presented to the user
-                self.trial_highlight_duration = 3500
+                self.trial_highlight_duration = 0#3500
                 # Time before the target is presented to the user
-                self.trial_pre_highlight_duration = 2000
-                # Pre trial Pause
-                self.trial_pause_duration = 2000
-                self.subtrial_count = 60 #2160 #6
+                self.trial_pre_highlight_duration = 0#2000
+                # Pre trial Pause (between Target presentation and trial start=
+                self.trial_pause_duration = 4000
+                self.subtrial_count = 6 #2160 #6
 
                 # Duration of the stimulus
                 self.stimulation_duration = 175
@@ -293,7 +298,7 @@ class P300PhotoBrowser(MainloopFeedback):
                 glMatrixMode(GL_MODELVIEW)
                 glLoadIdentity()
                 glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-                if self._state != STATE_BETWEEN_TRIALS and self._state != STATE_BETWEEN_BLOCKS and self._state != STATE_FINISHED:
+                if self._state != STATE_BETWEEN_TRIALS and self._state != STATE_BETWEEN_BLOCKS and self._state != STATE_PAUSE:
                         self.viewer.render(self.w, self.h, self.rotation, self.brightness, self.enlarge, self.mask)
                 else:
                         glEnable(GL_TEXTURE_2D)
@@ -303,8 +308,8 @@ class P300PhotoBrowser(MainloopFeedback):
                                 self.draw_paused_text()
                                 if self._block_elapsed >= self.inter_block_duration - self.inter_block_countdown_duration:
                                         self.draw_countdown_text(self.inter_block_duration - self._block_elapsed)
-                        elif self._state == STATE_FINISHED:
-                                self.draw_finished_text()
+                        elif self._state == STATE_PAUSE:
+                                self.draw_paused_text()
                 pygame.display.flip()
 
         def tick(self):
@@ -342,8 +347,7 @@ class P300PhotoBrowser(MainloopFeedback):
                 # reset current subtrial to 0
                 # change state to STATE_SUBTRIAL
 
-                # If the time to wait before showing the target is already elapsed:
-                # select a random image for highlighting
+                # If the time to wait before showing the target is already elapsed
                 if self._trial_elapsed >= self.trial_pre_highlight_duration and not self._in_pre_highlight_pause:
                         self._in_pre_highlight_pause = True
                         if not self.online_mode:
@@ -351,9 +355,8 @@ class P300PhotoBrowser(MainloopFeedback):
                         self.send_parallel(P300_START_TRIAL)
 
                         if self.copy_task:
-                                self._current_target = self.target_list[0]
-                                del self.target_list[0]
-                                #self._current_target = random.randint(0, len(self.viewer.photo_set.photos())-1)
+                                # self._current_target = self.target_list[0]
+                                # del self.target_list[0]
                                 self.viewer.set_highlight(self._current_target)
 
                         print "> Starting trial %d" % self._current_trial
@@ -380,6 +383,7 @@ class P300PhotoBrowser(MainloopFeedback):
                         self._current_subtrial = 0
                         self._subtrial_stimulation_elapsed = 0
                         self._subtrial_pause_elapsed = 0
+                        self._finished = False
                         print "> Starting subtrials!"
 
         def get_indexes(self):
@@ -467,12 +471,13 @@ class P300PhotoBrowser(MainloopFeedback):
                         if not self.online_mode:
                                 self.update_scores([random.random()], True) # XXX
 
+                        # Subtrial is over
                         if self._current_subtrial >= self.subtrial_count:
                                 self._display_elapsed = 0
                                 if self.image_display:
                                         self._state = STATE_DISPLAY_IMAGE #STATE_BETWEEN_TRIALS
                                 else:
-                                        self._state = STATE_BETWEEN_TRIALS
+                                        self._state = STATE_PAUSE #STATE_BETWEEN_TRIALS
                                 self._trial_elapsed = 0
 
 
@@ -514,7 +519,7 @@ class P300PhotoBrowser(MainloopFeedback):
                         self._current_trial = 0
                         # if on last block, stop
                         if self._current_block >= self.block_count:
-                                self._state = STATE_FINISHED
+                                self._state = STATE_PAUSE
                                 return
 
                 self._block_elapsed += self.elapsed
@@ -532,6 +537,7 @@ class P300PhotoBrowser(MainloopFeedback):
                         self.send_udp(P300_END_EXP)
                         self.send_parallel(P300_END_EXP)
                         self._finished = True
+                        #self._running = False
 
                 #print "FINISHED"
                 # Display "Ende" message
@@ -559,7 +565,7 @@ class P300PhotoBrowser(MainloopFeedback):
                         self.handle_trial_wait()
                 elif self._state == STATE_BETWEEN_BLOCKS:
                         self.handle_block_wait()
-                elif self._state == STATE_FINISHED:
+                elif self._state == STATE_PAUSE:
                         self.handle_finished()
                 elif self._state == STATE_DISPLAY_IMAGE:
                         if self._subtrial_scores_received:
@@ -714,19 +720,64 @@ class P300PhotoBrowser(MainloopFeedback):
                         self.tick()
                 self._inMainloop = False
 
+        def _mainloop_target(self,target_idx):
+                """
+                Calls tick repeatedly.
+
+                Additionally it calls either :func:`pause_tick` or :func:`play_tick`,
+                depending if the Feedback is paused or not.
+                """
+                self.on_init()
+                self.pre_mainloop()
+                self._running = True
+                self._inMainloop = True
+                self._state = STATE_STARTING_TRIAL
+                self._current_target = target_idx
+                while self._running:
+                        self.tick()
+                self._inMainloop = False
+
+
+        def startBrowser(self):
+                """
+                Calls tick repeatedly.
+
+                Additionally it calls either :func:`pause_tick` or :func:`play_tick`,
+                depending if the Feedback is paused or not.
+                """
+                self.on_init()
+                self.pre_mainloop()
+                self._running = True
+                self._inMainloop = True
+                self._state = STATE_PAUSE
+                while self._running:
+                        self.tick()
+                self._inMainloop = False
+
+        def startStimulation(self,target_idx):
+                self._state = STATE_STARTING_TRIAL
+                self._finished = False
+                self._current_target = target_idx
+
 
         def on_play(self):
                 pass
+
 
 if __name__ == "__main__":
         # simulate pyff for rapid testing
         os.chdir("../..")
         p = P300PhotoBrowser()
 
-        p.on_init()
 
-        p.pre_mainloop()
 
-        p._mainloop()
-        p.post_mainloop()
+        t = Thread(target=p.startBrowser, args=())
+        t.start()
+        while True:
+                for i in range(1,11):
+                        time.sleep(1)
+                        print "Sek ",i
+
+                p.startStimulation(1)
+
 
