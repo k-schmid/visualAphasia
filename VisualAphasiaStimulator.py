@@ -41,7 +41,7 @@ class VisualAphasiaStimulator(MainloopFeedback):
                 # Screen Settings
                 self.screen_w = 500
                 self.screen_h = 300
-                self.screenPos = [0, 0]
+                self.screenPos = [100, 100]
 
                 # Number of rows and columns in the matrix
                 self.row = 2
@@ -441,7 +441,7 @@ if __name__ == "__main__":
 
 
         while True:
-            p.startStimulation(1)
+            p.startStimulation(2)
             for i in range(1,16):
                 time.sleep(1)
                 print "Sek ",i

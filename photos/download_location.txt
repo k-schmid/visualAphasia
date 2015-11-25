@@ -1,7 +1,0 @@
-In order to reduce GIT load, the photos can be downloaded from:
-
-www.martijnschreuder.nl/PhotoBrowser-photos.zip
-
-They should be unzipped into this location.
-
-Martijn Schreuder
